@@ -1,0 +1,1379 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AGENT 00-X // CLASSIFIED HUB</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Retro Arcade & Monospace Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            pixel: ['"Press Start 2P"', 'monospace'],
+            mono: ['"Space Mono"', 'monospace'],
+          },
+          colors: {
+            obsidian: '#09090b',
+            charcoal: '#121216',
+            steel: '#1e1e26',
+            crimson: '#dc2626',
+            neonred: '#ff1e42',
+            silver: '#e4e4e7',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom Retro CRT, Pixel Grid & Animations */
+    :root {
+      --crimson: #ff1e42;
+      --dark-bg: #09090b;
+    }
+
+    body {
+      background-color: var(--dark-bg);
+      color: #e4e4e7;
+      font-family: 'Space Mono', monospace;
+      overflow-x: hidden;
+      /* Subtle pixel grid pattern */
+      background-image: 
+        linear-gradient(to right, rgba(255, 30, 66, 0.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 30, 66, 0.04) 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+
+    /* CRT Scanlines Overlay */
+    .crt-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: linear-gradient(
+        rgba(18, 16, 16, 0) 50%, 
+        rgba(0, 0, 0, 0.28) 50%
+      );
+      background-size: 100% 4px;
+      pointer-events: none;
+      z-index: 50;
+    }
+
+    /* Pixelated Borders & Shadows */
+    .retro-box {
+      background-color: #121216;
+      border: 2px solid #27272a;
+      box-shadow: 4px 4px 0px #000000, inset 0 0 15px rgba(0, 0, 0, 0.7);
+      transition: transform 0.1s ease, border-color 0.15s ease;
+    }
+
+    .retro-box:hover {
+      border-color: #3f3f46;
+    }
+
+    .retro-btn {
+      font-family: 'Press Start 2P', monospace;
+      border: 2px solid #ff1e42;
+      background: linear-gradient(180deg, #1f1216 0%, #12090c 100%);
+      color: #ffffff;
+      box-shadow: 3px 3px 0px #ff1e42;
+      transition: all 0.08s ease;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .retro-btn:hover {
+      background: #ff1e42;
+      color: #09090b;
+      transform: translate(-1px, -1px);
+      box-shadow: 4px 4px 0px #ffffff;
+    }
+
+    .retro-btn:active {
+      transform: translate(2px, 2px);
+      box-shadow: 1px 1px 0px #ff1e42;
+    }
+
+    .retro-btn-secondary {
+      font-family: 'Press Start 2P', monospace;
+      border: 2px solid #52525b;
+      background: #18181b;
+      color: #e4e4e7;
+      box-shadow: 3px 3px 0px #000000;
+      transition: all 0.08s ease;
+      cursor: pointer;
+    }
+
+    .retro-btn-secondary:hover, .retro-btn-secondary.active {
+      border-color: #ff1e42;
+      color: #ff1e42;
+      background: #1f1216;
+    }
+
+    /* Screen Shake Animation for Explosion */
+    @keyframes screenShake {
+      0% { transform: translate(0, 0) rotate(0deg); }
+      15% { transform: translate(-8px, 6px) rotate(-1deg); }
+      30% { transform: translate(8px, -6px) rotate(1deg); }
+      45% { transform: translate(-6px, -4px) rotate(0deg); }
+      60% { transform: translate(6px, 5px) rotate(1deg); }
+      75% { transform: translate(-4px, 2px) rotate(-1deg); }
+      100% { transform: translate(0, 0) rotate(0deg); }
+    }
+
+    .shake-active {
+      animation: screenShake 0.45s cubic-bezier(.36,.07,.19,.97) both;
+    }
+
+    /* Blinking Cursor & LED */
+    @keyframes blink {
+      0%, 49% { opacity: 1; }
+      50%, 100% { opacity: 0; }
+    }
+    .blink {
+      animation: blink 1s infinite;
+    }
+
+    /* Custom Range Slider */
+    input[type=range] {
+      -webkit-appearance: none;
+      background: transparent;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 16px;
+      width: 12px;
+      background: #ff1e42;
+      border: 2px solid #fff;
+      cursor: pointer;
+      margin-top: -6px;
+    }
+    input[type=range]::-webkit-slider-runnable-track {
+      width: 100%;
+      height: 4px;
+      background: #3f3f46;
+    }
+
+    /* Canvas responsive sizing */
+    canvas {
+      display: block;
+      image-rendering: pixelated;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-neonred selection:text-white">
+  <!-- CRT Scanlines -->
+  <div class="crt-overlay"></div>
+
+  <!-- Full-Screen Explosion Canvas Overlay -->
+  <canvas id="explosionCanvas" class="fixed inset-0 pointer-events-none z-40"></canvas>
+
+  <!-- 1. TOP SECRET AGENT HEADER / HUD -->
+  <header class="sticky top-0 z-30 bg-obsidian/95 backdrop-blur-md border-b-2 border-zinc-800 px-3 py-3 md:px-6">
+    <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      
+      <!-- Left: Agent Status & Badge -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-zinc-900 border-2 border-neonred flex items-center justify-center rounded-sm shadow-[2px_2px_0px_#ff1e42]">
+          <!-- Minimalist Pixel 007 Gunbarrel / Target SVG -->
+          <svg class="w-6 h-6 text-neonred" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M11 2h2v3h-2V2zm0 17h2v3h-2v-3zM2 11h3v2H2v-2zm17 0h3v2h-3v-2zM7 7h10v10H7V7zm2 2v6h6V9H9zm2 2h2v2h-2v-2z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block animate-pulse"></span>
+            <span class="font-pixel text-[10px] sm:text-xs text-white tracking-wider">AGENT: 00-SHADOW</span>
+          </div>
+          <p class="text-[11px] text-zinc-400 mt-0.5">STATUS: <span class="text-emerald-400 font-bold">ONLINE</span> // CLEARANCE: <span class="text-neonred font-bold">00-LEVEL</span></p>
+        </div>
+      </div>
+
+      <!-- Center: Pixel Health & Armor Bars (Hidden on extra small screens, visible sm+) -->
+      <div class="hidden sm:flex items-center gap-4 bg-zinc-900/90 border border-zinc-800 px-3 py-1.5 rounded">
+        <div>
+          <div class="flex justify-between text-[10px] font-pixel mb-1">
+            <span class="text-neonred">HP</span>
+            <span id="hpText" class="text-white">100%</span>
+          </div>
+          <div class="w-24 h-2.5 bg-zinc-800 p-0.5 flex gap-0.5" id="hpBar">
+            <div class="h-full flex-1 bg-neonred"></div>
+            <div class="h-full flex-1 bg-neonred"></div>
+            <div class="h-full flex-1 bg-neonred"></div>
+            <div class="h-full flex-1 bg-neonred"></div>
+            <div class="h-full flex-1 bg-neonred"></div>
+          </div>
+        </div>
+        <div>
+          <div class="flex justify-between text-[10px] font-pixel mb-1">
+            <span class="text-zinc-300">DRIP</span>
+            <span class="text-white">MAX</span>
+          </div>
+          <div class="w-24 h-2.5 bg-zinc-800 p-0.5 flex gap-0.5">
+            <div class="h-full flex-1 bg-white"></div>
+            <div class="h-full flex-1 bg-white"></div>
+            <div class="h-full flex-1 bg-white"></div>
+            <div class="h-full flex-1 bg-white"></div>
+            <div class="h-full flex-1 bg-white"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Sound Toggle & Detonate Button -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        <button id="muteBtn" class="retro-btn-secondary px-2.5 py-2 text-[10px] rounded-sm flex items-center gap-1.5" title="Toggle Retro SFX">
+          <span id="soundIcon">🔊</span>
+          <span class="hidden md:inline" id="soundLabel">SFX: ON</span>
+        </button>
+        <button id="detonateBtn" class="retro-btn px-3 py-2 text-[10px] sm:text-xs rounded-sm flex items-center gap-1.5">
+          <span>💥</span>
+          <span>DETONATE</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main class="flex-1 max-w-6xl w-full mx-auto px-4 py-6 sm:py-8 space-y-8">
+
+    <!-- HERO BANNER: CLASSIFIED DOSSIER INTRO -->
+    <section class="retro-box rounded-md p-5 sm:p-8 relative overflow-hidden">
+      <!-- Decorative Corner Brackets -->
+      <div class="absolute top-2 left-2 w-3 h-3 border-t-2 border-l-2 border-neonred"></div>
+      <div class="absolute top-2 right-2 w-3 h-3 border-t-2 border-r-2 border-neonred"></div>
+      <div class="absolute bottom-2 left-2 w-3 h-3 border-b-2 border-l-2 border-neonred"></div>
+      <div class="absolute bottom-2 right-2 w-3 h-3 border-b-2 border-r-2 border-neonred"></div>
+
+      <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        <div class="space-y-3 max-w-2xl">
+          <div class="inline-block bg-neonred/15 border border-neonred text-neonred font-pixel text-[10px] px-2.5 py-1 rounded-sm">
+            TOP SECRET // EYES ONLY
+          </div>
+          <h1 class="font-pixel text-xl sm:text-3xl text-white leading-relaxed">
+            WELCOME BACK, <span class="text-neonred">AGENT</span><span class="blink text-neonred">_</span>
+          </h1>
+          <p class="text-zinc-300 text-sm sm:text-base leading-relaxed">
+            Central command hub for <strong class="text-white">007 Espionage Tech</strong>, <strong class="text-white">Roblox Ops</strong>, <strong class="text-white">Dark Techwear</strong>, and <strong class="text-white">8-Bit Beats</strong>. Equip your loadout, spin a synth track, or test your aim at the range.
+          </p>
+        </div>
+
+        <!-- Quick Stats Box -->
+        <div class="w-full md:w-auto bg-obsidian border border-zinc-800 p-4 rounded-sm font-mono text-xs space-y-2 min-w-[220px]">
+          <div class="text-zinc-500 border-b border-zinc-800 pb-1 font-pixel text-[10px]">MISSION TELEMETRY</div>
+          <div class="flex justify-between">
+            <span class="text-zinc-400">CODENAME:</span>
+            <span class="text-white font-bold">DOUBLE-O-KID</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-zinc-400">STYLE:</span>
+            <span class="text-neonred font-bold">NOIR / TECHWEAR</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-zinc-400">HIGH SCORE:</span>
+            <span id="heroHighScore" class="text-emerald-400 font-bold">0 PTS</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. AGENT DOSSIER & LOADOUT (TABS: 007 GADGETS | ROBLOX OPS | DARK FASHION) -->
+    <section class="retro-box rounded-md p-5 sm:p-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b-2 border-zinc-800 pb-4 mb-6">
+        <div>
+          <h2 class="font-pixel text-sm sm:text-base text-white flex items-center gap-2">
+            <span class="text-neonred">▶</span> AGENT INVENTORY & LOADOUT
+          </h2>
+          <p class="text-xs text-zinc-400 mt-1">Select a classified module below to inspect gear and stats.</p>
+        </div>
+
+        <!-- Module Tabs -->
+        <div class="flex flex-wrap gap-2">
+          <button onclick="switchTab('espionage')" id="tab-espionage" class="retro-btn-secondary active px-3 py-2 text-[10px] rounded-sm">
+            🕵️ 007 GEAR
+          </button>
+          <button onclick="switchTab('roblox')" id="tab-roblox" class="retro-btn-secondary px-3 py-2 text-[10px] rounded-sm">
+            🎮 ROBLOX
+          </button>
+          <button onclick="switchTab('fashion')" id="tab-fashion" class="retro-btn-secondary px-3 py-2 text-[10px] rounded-sm">
+            🧥 DARK DRIP
+          </button>
+        </div>
+      </div>
+
+      <!-- TAB 1: 007 / ESPIONAGE GADGETS -->
+      <div id="panel-espionage" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Gadget 1 -->
+        <div class="bg-obsidian border border-zinc-800 hover:border-neonred p-4 rounded-sm flex flex-col justify-between transition-colors">
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-pixel text-neonred">GADGET #01</span>
+              <span class="text-[10px] bg-zinc-900 border border-zinc-700 px-2 py-0.5 text-zinc-300">Q-BRANCH</span>
+            </div>
+            <!-- Pixel Watch SVG -->
+            <div class="w-14 h-14 bg-zinc-900 border border-zinc-700 rounded-sm flex items-center justify-center mb-3 mx-auto">
+              <svg class="w-9 h-9 text-neonred" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M6 1h4v2H6V1zm0 12h4v2H6v-2zM4 4h8v8H4V4zm2 2v4h4V6H6zm1 1h2v2H7V7z"/>
+              </svg>
+            </div>
+            <h3 class="font-pixel text-xs text-white text-center mb-2">LASER CHRONOGRAPH</h3>
+            <p class="text-xs text-zinc-400 text-center mb-3">Tactical matte-black timepiece equipped with a high-intensity red plasma cutter.</p>
+          </div>
+          <div class="pt-2 border-t border-zinc-800/80">
+            <button onclick="toggleIntel(this)" class="w-full py-1.5 text-[10px] font-pixel bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-700 rounded-sm">
+              [ + REVEAL CLASSIFIED INTEL ]
+            </button>
+            <div class="hidden mt-2 p-2 bg-neonred/10 border border-neonred/40 text-[11px] text-red-200 rounded-sm">
+              <strong>INTEL:</strong> Can slice through titanium vault locks in 3.2 seconds. Battery lasts 48 hours.
+            </div>
+          </div>
+        </div>
+
+        <!-- Gadget 2 -->
+        <div class="bg-obsidian border border-zinc-800 hover:border-neonred p-4 rounded-sm flex flex-col justify-between transition-colors">
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-pixel text-neonred">GADGET #02</span>
+              <span class="text-[10px] bg-zinc-900 border border-zinc-700 px-2 py-0.5 text-zinc-300">STEALTH</span>
+            </div>
+            <!-- Pixel Grappling Hook SVG -->
+            <div class="w-14 h-14 bg-zinc-900 border border-zinc-700 rounded-sm flex items-center justify-center mb-3 mx-auto">
+              <svg class="w-9 h-9 text-white" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M7 1h2v4h2V3h2v4h-2v2H9v6H7V9H5V7H3V3h2v2h2V1z"/>
+              </svg>
+            </div>
+            <h3 class="font-pixel text-xs text-white text-center mb-2">MICRO-GRAPPLER</h3>
+            <p class="text-xs text-zinc-400 text-center mb-3">Carbon-fiber compressed air launcher with 150m silent Kevlar-weave line.</p>
+          </div>
+          <div class="pt-2 border-t border-zinc-800/80">
+            <button onclick="toggleIntel(this)" class="w-full py-1.5 text-[10px] font-pixel bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-700 rounded-sm">
+              [ + REVEAL CLASSIFIED INTEL ]
+            </button>
+            <div class="hidden mt-2 p-2 bg-neonred/10 border border-neonred/40 text-[11px] text-red-200 rounded-sm">
+              <strong>INTEL:</strong> Supports up to 250kg. Magnetic claw locks silently onto steel rooftops.
+            </div>
+          </div>
+        </div>
+
+        <!-- Gadget 3 -->
+        <div class="bg-obsidian border border-zinc-800 hover:border-neonred p-4 rounded-sm flex flex-col justify-between transition-colors">
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-pixel text-neonred">GADGET #03</span>
+              <span class="text-[10px] bg-zinc-900 border border-zinc-700 px-2 py-0.5 text-zinc-300">ORDNANCE</span>
+            </div>
+            <!-- Pixel Blaster / Spy Pistol SVG -->
+            <div class="w-14 h-14 bg-zinc-900 border border-zinc-700 rounded-sm flex items-center justify-center mb-3 mx-auto">
+              <svg class="w-9 h-9 text-neonred" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M2 5h11v2h1v2h-3v1H8v4H5v-4H4V8H2V5zm3 3v2h2V8H5z"/>
+              </svg>
+            </div>
+            <h3 class="font-pixel text-xs text-white text-center mb-2">PP7 PULSE BLASTER</h3>
+            <p class="text-xs text-zinc-400 text-center mb-3">Silenced retro-tactical sidearm calibrated for target practice & EMP bursts.</p>
+          </div>
+          <div class="pt-2 border-t border-zinc-800/80">
+            <button onclick="toggleIntel(this)" class="w-full py-1.5 text-[10px] font-pixel bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-700 rounded-sm">
+              [ + REVEAL CLASSIFIED INTEL ]
+            </button>
+            <div class="hidden mt-2 p-2 bg-neonred/10 border border-neonred/40 text-[11px] text-red-200 rounded-sm">
+              <strong>INTEL:</strong> Biometric palm-print grip ensures only Agent 00-Shadow can fire it.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: ROBLOX / GAMING CARTRIDGE -->
+      <div id="panel-roblox" class="hidden">
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center bg-obsidian border border-zinc-800 p-5 rounded-sm">
+          <!-- Left: Retro Game Cartridge Visual -->
+          <div class="md:col-span-5 flex justify-center">
+            <div class="w-56 bg-zinc-900 border-4 border-zinc-700 rounded-t-xl rounded-b-sm p-3 shadow-[6px_6px_0px_#000]">
+              <div class="bg-zinc-800 h-3 w-3/4 mx-auto mb-3 rounded-xs"></div>
+              <div class="bg-gradient-to-br from-neonred via-red-900 to-black border-2 border-zinc-600 p-4 rounded-sm text-center space-y-2">
+                <div class="font-pixel text-[9px] text-white/80 tracking-widest">ROBLOX // ARCADE CART</div>
+                <!-- Blocky Avatar SVG -->
+                <svg class="w-16 h-16 mx-auto text-white drop-shadow-[2px_2px_0px_#000]" viewBox="0 0 16 16" fill="currentColor">
+                  <path d="M5 2h6v4H5V2zm1 1v1h1V3H6zm3 0v1h1V3H9zM3 7h10v5h-2v3H9v-3H7v3H5v-3H3V7z"/>
+                </svg>
+                <div class="font-pixel text-xs text-white">BLOX OPS 007</div>
+                <div class="text-[10px] font-mono text-red-200">EDITION: SHADOW PRO</div>
+              </div>
+              <div class="mt-3 flex justify-between items-center text-[9px] font-pixel text-zinc-500">
+                <span>▲ INSERT</span>
+                <span>64-BIT</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Favorite Genres & Stats -->
+          <div class="md:col-span-7 space-y-4">
+            <div class="flex items-center justify-between">
+              <h3 class="font-pixel text-sm text-white">PLAYER PROFILE // GAMING</h3>
+              <span class="px-2 py-1 bg-emerald-500/10 border border-emerald-500 text-emerald-400 font-pixel text-[9px]">READY TO PLAY</span>
+            </div>
+            <p class="text-xs sm:text-sm text-zinc-300">
+              Dominating leaderboards across tactical shooters, parkour obbies, and retro arcade simulators. Always hunting for rare badges and secret easter eggs.
+            </p>
+            <div>
+              <div class="font-pixel text-[10px] text-zinc-400 mb-2">FAVORITE MODES & GENRES:</div>
+              <div class="flex flex-wrap gap-2">
+                <span class="px-3 py-1.5 bg-zinc-900 border border-neonred text-white font-pixel text-[10px]">🎯 TACTICAL FPS</span>
+                <span class="px-3 py-1.5 bg-zinc-900 border border-zinc-700 text-zinc-200 font-pixel text-[10px]">🏃 SPEED OBBY</span>
+                <span class="px-3 py-1.5 bg-zinc-900 border border-zinc-700 text-zinc-200 font-pixel text-[10px]">🏭 CYBER TYCOON</span>
+                <span class="px-3 py-1.5 bg-zinc-900 border border-zinc-700 text-zinc-200 font-pixel text-[10px]">👾 RETRO ARCADE</span>
+              </div>
+            </div>
+            <div class="pt-2">
+              <a href="#targetRangeSection" onclick="playClick()" class="retro-btn inline-block px-4 py-2.5 text-[10px] rounded-sm">
+                ▶ LAUNCH AIM TRAINER BELOW
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: DARK FASHION / TECHWEAR WARDROBE -->
+      <div id="panel-fashion" class="hidden">
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-6 bg-obsidian border border-zinc-800 p-5 rounded-sm">
+          <!-- Left: Interactive Agent Silhouette Preview -->
+          <div class="md:col-span-5 bg-zinc-950 border-2 border-zinc-800 rounded-sm p-4 flex flex-col items-center justify-between relative">
+            <div class="w-full flex justify-between text-[10px] font-pixel text-zinc-500">
+              <span>AVATAR PREVIEW</span>
+              <span class="text-neonred" id="dripScoreLabel">STEALTH: 100%</span>
+            </div>
+            
+            <!-- Dynamic SVG Agent Silhouette -->
+            <svg id="agentAvatarSvg" class="w-44 h-56 my-2" viewBox="0 0 120 160" fill="none">
+              <!-- Subtle Grid Backdrop -->
+              <circle cx="60" cy="80" r="52" stroke="#27272a" stroke-width="1" stroke-dasharray="4 4"/>
+              
+              <!-- Base Silhouette Body -->
+              <rect x="46" y="18" width="28" height="28" rx="4" fill="#27272a" stroke="#52525b" stroke-width="2"/>
+              <!-- Torso -->
+              <path d="M34 52 H86 L82 102 H38 Z" fill="#18181b" stroke="#52525b" stroke-width="2"/>
+              <!-- Legs -->
+              <rect x="40" y="102" width="16" height="42" fill="#18181b" stroke="#52525b" stroke-width="2"/>
+              <rect x="64" y="102" width="16" height="42" fill="#18181b" stroke="#52525b" stroke-width="2"/>
+
+              <!-- EQUIPPED LAYER 1: TECHWEAR HOODIE (Toggled) -->
+              <g id="gear-hoodie">
+                <path d="M42 14 H78 L80 48 H40 Z" fill="#09090b" stroke="#ff1e42" stroke-width="2"/>
+                <path d="M30 50 H90 L86 104 H34 Z" fill="#09090b" stroke="#ff1e42" stroke-width="2"/>
+                <!-- Crimson Tactical Straps -->
+                <line x1="45" y1="52" x2="45" y2="102" stroke="#ff1e42" stroke-width="2"/>
+                <line x1="75" y1="52" x2="75" y2="102" stroke="#ff1e42" stroke-width="2"/>
+                <rect x="52" y="68" width="16" height="10" fill="#ff1e42"/>
+              </g>
+
+              <!-- EQUIPPED LAYER 2: CYBER VISOR / SHADES (Toggled) -->
+              <g id="gear-shades">
+                <rect x="44" y="26" width="32" height="8" fill="#ff1e42" stroke="#ffffff" stroke-width="1.5"/>
+                <line x1="48" y1="30" x2="56" y2="30" stroke="#ffffff" stroke-width="1.5"/>
+              </g>
+
+              <!-- EQUIPPED LAYER 3: TACTICAL CARGO PANTS (Toggled) -->
+              <g id="gear-cargo">
+                <rect x="38" y="102" width="18" height="40" fill="#09090b" stroke="#e4e4e7" stroke-width="2"/>
+                <rect x="64" y="102" width="18" height="40" fill="#09090b" stroke="#e4e4e7" stroke-width="2"/>
+                <!-- Cargo Pockets -->
+                <rect x="34" y="114" width="6" height="14" fill="#ff1e42"/>
+                <rect x="80" y="114" width="6" height="14" fill="#ff1e42"/>
+              </g>
+
+              <!-- EQUIPPED LAYER 4: COMBAT BOOTS (Toggled) -->
+              <g id="gear-boots">
+                <rect x="36" y="140" width="22" height="12" rx="2" fill="#09090b" stroke="#ff1e42" stroke-width="2"/>
+                <rect x="62" y="140" width="22" height="12" rx="2" fill="#09090b" stroke="#ff1e42" stroke-width="2"/>
+              </g>
+            </svg>
+
+            <div class="text-[11px] text-zinc-400 font-mono text-center">
+              CLICK ITEMS ON RIGHT TO EQUIP / UNEQUIP
+            </div>
+          </div>
+
+          <!-- Right: Wardrobe Selector Buttons -->
+          <div class="md:col-span-7 flex flex-col justify-between space-y-4">
+            <div>
+              <h3 class="font-pixel text-sm text-white mb-1">DARK TECHWEAR LOADOUT</h3>
+              <p class="text-xs text-zinc-400">Customize Agent 00-Shadow's stealth streetwear fit.</p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button onclick="toggleOutfit('hoodie', this)" class="outfit-btn active text-left p-3 bg-zinc-900 border-2 border-neonred rounded-sm transition-all">
+                <div class="flex justify-between items-center">
+                  <span class="font-pixel text-[10px] text-white">SHADOW HOODIE</span>
+                  <span class="status-badge text-[9px] font-pixel text-neonred">[EQUIPPED]</span>
+                </div>
+                <p class="text-[11px] text-zinc-400 mt-1">Matte-black shell + crimson chest rig.</p>
+              </button>
+
+              <button onclick="toggleOutfit('shades', this)" class="outfit-btn active text-left p-3 bg-zinc-900 border-2 border-neonred rounded-sm transition-all">
+                <div class="flex justify-between items-center">
+                  <span class="font-pixel text-[10px] text-white">007 NIGHT VISOR</span>
+                  <span class="status-badge text-[9px] font-pixel text-neonred">[EQUIPPED]</span>
+                </div>
+                <p class="text-[11px] text-zinc-400 mt-1">Crimson HUD polarized sunglasses.</p>
+              </button>
+
+              <button onclick="toggleOutfit('cargo', this)" class="outfit-btn active text-left p-3 bg-zinc-900 border-2 border-neonred rounded-sm transition-all">
+                <div class="flex justify-between items-center">
+                  <span class="font-pixel text-[10px] text-white">TECH CARGOS</span>
+                  <span class="status-badge text-[9px] font-pixel text-neonred">[EQUIPPED]</span>
+                </div>
+                <p class="text-[11px] text-zinc-400 mt-1">6-pocket ripstop tactical pants.</p>
+              </button>
+
+              <button onclick="toggleOutfit('boots', this)" class="outfit-btn active text-left p-3 bg-zinc-900 border-2 border-neonred rounded-sm transition-all">
+                <div class="flex justify-between items-center">
+                  <span class="font-pixel text-[10px] text-white">HEAVY BOOTS</span>
+                  <span class="status-badge text-[9px] font-pixel text-neonred">[EQUIPPED]</span>
+                </div>
+                <p class="text-[11px] text-zinc-400 mt-1">Stealth-sole combat stompers.</p>
+              </button>
+            </div>
+
+            <div class="bg-zinc-900/70 border border-zinc-800 p-3 rounded-sm flex items-center justify-between text-xs">
+              <span class="text-zinc-400">PALETTE: <strong class="text-white">OBSIDIAN / CRIMSON / SILVER</strong></span>
+              <span class="font-pixel text-[10px] text-emerald-400">DRIP VERIFIED ✔</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- BOTTOM GRID: SYNTHWAVE MUSIC DECK & TARGET PRACTICE MINI-GAME -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+      <!-- 3. SYNTHWAVE / CHIPTUNE MUSIC DECK (5 COLS) -->
+      <section class="lg:col-span-5 retro-box rounded-md p-5 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between border-b-2 border-zinc-800 pb-3 mb-4">
+            <h2 class="font-pixel text-xs sm:text-sm text-white flex items-center gap-2">
+              <span class="text-neonred">♫</span> SPY SYNTH DECK
+            </h2>
+            <span id="deckStatus" class="font-pixel text-[9px] px-2 py-0.5 bg-zinc-900 border border-zinc-700 text-zinc-400">STANDBY</span>
+          </div>
+
+          <!-- Animated Frequency Visualizer -->
+          <div class="bg-obsidian border-2 border-zinc-800 rounded-sm p-3 mb-4">
+            <div class="flex justify-between text-[10px] font-mono text-zinc-400 mb-2">
+              <span id="nowPlayingTitle">SELECT A TAPE BELOW</span>
+              <span id="bpmDisplay">120 BPM</span>
+            </div>
+            <div id="visualizerBars" class="h-20 flex items-end justify-between gap-1 pt-2">
+              <!-- 16 Visualizer Bars generated by JS -->
+            </div>
+          </div>
+
+          <!-- Track Selector Cassette Buttons -->
+          <div class="space-y-2 mb-5">
+            <button onclick="selectTrack(0)" id="track-0" class="track-btn w-full text-left p-2.5 bg-obsidian border border-zinc-800 hover:border-neonred rounded-sm flex items-center justify-between transition-colors">
+              <div>
+                <div class="font-pixel text-[10px] text-white">01. 007 STEALTH BASS</div>
+                <div class="text-[11px] text-zinc-400">Classic secret agent espionage groove</div>
+              </div>
+              <span class="font-pixel text-[10px] text-neonred">▶</span>
+            </button>
+
+            <button onclick="selectTrack(1)" id="track-1" class="track-btn w-full text-left p-2.5 bg-obsidian border border-zinc-800 hover:border-neonred rounded-sm flex items-center justify-between transition-colors">
+              <div>
+                <div class="font-pixel text-[10px] text-white">02. 8-BIT BOSS FIGHT</div>
+                <div class="text-[11px] text-zinc-400">High-energy retro arcade chiptune</div>
+              </div>
+              <span class="font-pixel text-[10px] text-neonred">▶</span>
+            </button>
+
+            <button onclick="selectTrack(2)" id="track-2" class="track-btn w-full text-left p-2.5 bg-obsidian border border-zinc-800 hover:border-neonred rounded-sm flex items-center justify-between transition-colors">
+              <div>
+                <div class="font-pixel text-[10px] text-white">03. DARK SYNTHWAVE</div>
+                <div class="text-[11px] text-zinc-400">Midnight neon cyberpunk arpeggio</div>
+              </div>
+              <span class="font-pixel text-[10px] text-neonred">▶</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Deck Transport Controls & Tempo Slider -->
+        <div class="bg-obsidian border border-zinc-800 p-3 rounded-sm space-y-3">
+          <div class="flex items-center gap-2">
+            <button id="playPauseBtn" onclick="togglePlayTrack()" class="retro-btn flex-1 py-2.5 text-[10px] rounded-sm">
+              ▶ PLAY TAPE
+            </button>
+            <button onclick="stopTrack()" class="retro-btn-secondary px-3 py-2.5 text-[10px] rounded-sm">
+              ■ STOP
+            </button>
+          </div>
+          <div class="flex items-center gap-3">
+            <label for="tempoSlider" class="font-pixel text-[9px] text-zinc-400 whitespace-nowrap">TEMPO:</label>
+            <input id="tempoSlider" type="range" min="80" max="170" value="120" class="w-full" oninput="updateTempo(this.value)">
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. MINI-GAME: TARGET PRACTICE RANGE (7 COLS) -->
+      <section id="targetRangeSection" class="lg:col-span-7 retro-box rounded-md p-5 flex flex-col justify-between">
+        <div>
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b-2 border-zinc-800 pb-3 mb-4">
+            <h2 class="font-pixel text-xs sm:text-sm text-white flex items-center gap-2">
+              <span class="text-neonred">⊕</span> 007 TARGET RANGE
+            </h2>
+            <!-- Live Game Stats -->
+            <div class="flex items-center gap-3 font-pixel text-[10px]">
+              <span class="text-zinc-300">SCORE: <span id="gameScore" class="text-white">0</span></span>
+              <span class="text-neonred">COMBO: <span id="gameCombo">x1</span></span>
+              <span class="text-emerald-400">TIME: <span id="gameTime">30</span>s</span>
+            </div>
+          </div>
+
+          <!-- Interactive Canvas Arena -->
+          <div id="gameContainer" class="relative w-full h-64 sm:h-72 bg-obsidian border-2 border-zinc-800 rounded-sm overflow-hidden cursor-crosshair select-none">
+            <canvas id="rangeCanvas" class="w-full h-full"></canvas>
+
+            <!-- Start / Game Over Overlay inside Arena -->
+            <div id="gameOverlay" class="absolute inset-0 bg-obsidian/85 backdrop-blur-xs flex flex-col items-center justify-center p-4 text-center">
+              <div class="font-pixel text-sm sm:text-base text-white mb-2" id="overlayTitle">TACTICAL AIM TRAINER</div>
+              <p class="text-xs text-zinc-300 max-w-sm mb-4" id="overlayDesc">
+                Click or tap the pop-up targets before they vanish! Hit consecutive targets to build your combo multiplier.
+              </p>
+              <button onclick="startTargetGame()" class="retro-btn px-5 py-3 text-xs rounded-sm">
+                ▶ START MISSION
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom Range Controls / Tips -->
+        <div class="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs text-zinc-400">
+          <span>TIP: Red targets = <strong class="text-white">100 PTS</strong> | Gold bonus = <strong class="text-amber-400">250 PTS</strong></span>
+          <button onclick="startTargetGame()" class="retro-btn-secondary px-3 py-1.5 text-[9px] rounded-sm">
+            ↻ RESET RANGE
+          </button>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="border-t-2 border-zinc-900 bg-obsidian py-4 px-4 text-center text-xs text-zinc-500 font-mono">
+    <p>AGENT 00-SHADOW // CLASSIFIED TERMINAL v2.07 // <span class="text-neonred">NO UNAUTHORIZED ACCESS</span></p>
+  </footer>
+
+  <!-- JAVASCRIPT: WEB AUDIO SYNTH, PARTICLE EXPLOSIONS & TARGET MINI-GAME -->
+  <script>
+    // ==========================================
+    // 1. WEB AUDIO API (SFX & SYNTH MUSIC DECK)
+    // ==========================================
+    let audioCtx = null;
+    let isMuted = false;
+
+    function initAudio() {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContext();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    // Mute Toggle
+    const muteBtn = document.getElementById('muteBtn');
+    muteBtn.addEventListener('click', () => {
+      isMuted = !isMuted;
+      document.getElementById('soundIcon').textContent = isMuted ? '🔇' : '🔊';
+      const label = document.getElementById('soundLabel');
+      if (label) label.textContent = isMuted ? 'SFX: OFF' : 'SFX: ON';
+      if (isMuted && isPlaying) {
+        stopTrack();
+      }
+    });
+
+    // Retro UI Blip Sound
+    function playClick(freq = 620) {
+      if (isMuted) return;
+      initAudio();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(freq * 1.4, audioCtx.currentTime + 0.06);
+      
+      gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.06);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.06);
+    }
+
+    // Retro Laser / Shoot Sound
+    function playLaser() {
+      if (isMuted) return;
+      initAudio();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(140, audioCtx.currentTime + 0.12);
+
+      gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.12);
+    }
+
+    // Low Dull Miss Thud Sound
+    function playMissThud() {
+      if (isMuted) return;
+      initAudio();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(140, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(48, audioCtx.currentTime + 0.18);
+
+      gain.gain.setValueAtTime(0.18, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.18);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.18);
+    }
+
+    // 8-Bit White-Noise Explosion Sound
+    function playExplosionSound() {
+      if (isMuted) return;
+      initAudio();
+      const bufferSize = audioCtx.sampleRate * 0.45;
+      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        // Quantized step noise for 8-bit crunch
+        if (i % 6 === 0) {
+          data[i] = Math.random() * 2 - 1;
+        } else {
+          data[i] = data[i - 1] || 0;
+        }
+      }
+
+      const noise = audioCtx.createBufferSource();
+      noise.buffer = buffer;
+
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(900, audioCtx.currentTime);
+      filter.frequency.exponentialRampToValueAtTime(90, audioCtx.currentTime + 0.45);
+
+      const gain = audioCtx.createGain();
+      gain.gain.setValueAtTime(0.28, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.45);
+
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(audioCtx.destination);
+      noise.start();
+    }
+
+    // ==========================================
+    // 2. FULL-SCREEN PIXEL EXPLOSION & SHAKE
+    // ==========================================
+    const expCanvas = document.getElementById('explosionCanvas');
+    const expCtx = expCanvas.getContext('2d');
+    let screenParticles = [];
+
+    function resizeExpCanvas() {
+      expCanvas.width = window.innerWidth;
+      expCanvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeExpCanvas);
+    resizeExpCanvas();
+
+    function triggerScreenExplosion(originX, originY) {
+      playExplosionSound();
+
+      // Trigger screen shake on body
+      document.body.classList.remove('shake-active');
+      void document.body.offsetWidth; // trigger reflow
+      document.body.classList.add('shake-active');
+
+      const colors = ['#ff1e42', '#ffffff', '#f59e0b', '#dc2626', '#71717a'];
+      for (let i = 0; i < 65; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 3 + Math.random() * 11;
+        screenParticles.push({
+          x: originX,
+          y: originY,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          size: Math.floor(4 + Math.random() * 8),
+          color: colors[Math.floor(Math.random() * colors.length)],
+          life: 1.0,
+          decay: 0.02 + Math.random() * 0.025
+        });
+      }
+    }
+
+    document.getElementById('detonateBtn').addEventListener('click', (e) => {
+      const rect = e.currentTarget.getBoundingClientRect();
+      triggerScreenExplosion(rect.left + rect.width / 2, rect.top + rect.height / 2);
+    });
+
+    function animateScreenParticles() {
+      expCtx.clearRect(0, 0, expCanvas.width, expCanvas.height);
+      for (let i = screenParticles.length - 1; i >= 0; i--) {
+        const p = screenParticles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.25; // gravity
+        p.life -= p.decay;
+
+        if (p.life <= 0) {
+          screenParticles.splice(i, 1);
+        } else {
+          expCtx.globalAlpha = p.life;
+          expCtx.fillStyle = p.color;
+          // Draw crisp pixel squares
+          expCtx.fillRect(Math.round(p.x), Math.round(p.y), p.size, p.size);
+        }
+      }
+      expCtx.globalAlpha = 1;
+      requestAnimationFrame(animateScreenParticles);
+    }
+
+    // ==========================================
+    // 3. DOSSIER TABS, INTEL & DARK FASHION AVATAR
+    // ==========================================
+    function switchTab(tabName) {
+      playClick(540);
+      const tabs = ['espionage', 'roblox', 'fashion'];
+      tabs.forEach(t => {
+        document.getElementById(`panel-${t}`).classList.add('hidden');
+        document.getElementById(`tab-${t}`).classList.remove('active');
+      });
+      document.getElementById(`panel-${tabName}`).classList.remove('hidden');
+      document.getElementById(`tab-${tabName}`).classList.add('active');
+    }
+
+    function toggleIntel(btn) {
+      playClick(720);
+      const intelBox = btn.nextElementSibling;
+      const isHidden = intelBox.classList.contains('hidden');
+      if (isHidden) {
+        intelBox.classList.remove('hidden');
+        btn.textContent = '[ - HIDE CLASSIFIED INTEL ]';
+        btn.classList.add('text-neonred', 'border-neonred');
+      } else {
+        intelBox.classList.add('hidden');
+        btn.textContent = '[ + REVEAL CLASSIFIED INTEL ]';
+        btn.classList.remove('text-neonred', 'border-neonred');
+      }
+    }
+
+    // Dark Fashion Wardrobe Equip Toggle
+    const outfitState = {
+      hoodie: true,
+      shades: true,
+      cargo: true,
+      boots: true
+    };
+
+    function toggleOutfit(item, btnEl) {
+      playClick(660);
+      outfitState[item] = !outfitState[item];
+      const svgGroup = document.getElementById(`gear-${item}`);
+      const badge = btnEl.querySelector('.status-badge');
+
+      if (outfitState[item]) {
+        svgGroup.style.display = 'inline';
+        btnEl.classList.add('border-neonred');
+        btnEl.classList.remove('border-zinc-800', 'opacity-60');
+        badge.textContent = '[EQUIPPED]';
+        badge.classList.add('text-neonred');
+        badge.classList.remove('text-zinc-500');
+      } else {
+        svgGroup.style.display = 'none';
+        btnEl.classList.remove('border-neonred');
+        btnEl.classList.add('border-zinc-800', 'opacity-60');
+        badge.textContent = '[UNEQUIPPED]';
+        badge.classList.remove('text-neonred');
+        badge.classList.add('text-zinc-500');
+      }
+
+      // Calculate Stealth / Drip Percentage
+      const equippedCount = Object.values(outfitState).filter(Boolean).length;
+      document.getElementById('dripScoreLabel').textContent = `STEALTH: ${equippedCount * 25}%`;
+    }
+
+    // ==========================================
+    // 4. PROCEDURAL SYNTHWAVE / CHIPTUNE DECK
+    // ==========================================
+    const tracks = [
+      {
+        name: '007 STEALTH BASS',
+        defaultBpm: 115,
+        wave: 'triangle',
+        // Classic chromatic spy riff frequencies (E minor spy progression)
+        notes: [164.81, 0, 174.61, 174.61, 185.00, 0, 174.61, 0, 164.81, 0, 196.00, 0, 185.00, 174.61, 164.81, 0]
+      },
+      {
+        name: '8-BIT BOSS FIGHT',
+        defaultBpm: 145,
+        wave: 'square',
+        notes: [220.00, 220.00, 261.63, 220.00, 329.63, 293.66, 261.63, 246.94, 220.00, 220.00, 349.23, 329.63, 293.66, 261.63, 246.94, 196.00]
+      },
+      {
+        name: 'DARK SYNTHWAVE',
+        defaultBpm: 128,
+        wave: 'sawtooth',
+        notes: [130.81, 196.00, 261.63, 311.13, 130.81, 196.00, 261.63, 293.66, 103.83, 155.56, 207.65, 261.63, 116.54, 174.61, 233.08, 293.66]
+      }
+    ];
+
+    let currentTrackIdx = 0;
+    let isPlaying = false;
+    let stepIndex = 0;
+    let seqInterval = null;
+    let currentBpm = 115;
+
+    // Build 16 Visualizer Bars
+    const vizContainer = document.getElementById('visualizerBars');
+    for (let i = 0; i < 16; i++) {
+      const bar = document.createElement('div');
+      bar.className = 'flex-1 bg-neonred transition-all duration-75 rounded-t-xs';
+      bar.style.height = '12%';
+      vizContainer.appendChild(bar);
+    }
+
+    function selectTrack(idx) {
+      currentTrackIdx = idx;
+      currentBpm = tracks[idx].defaultBpm;
+      document.getElementById('tempoSlider').value = currentBpm;
+      document.getElementById('bpmDisplay').textContent = `${currentBpm} BPM`;
+      document.getElementById('nowPlayingTitle').textContent = tracks[idx].name;
+
+      // Highlight active track button
+      document.querySelectorAll('.track-btn').forEach((btn, i) => {
+        if (i === idx) {
+          btn.classList.add('border-neonred', 'bg-zinc-900');
+          btn.classList.remove('border-zinc-800');
+        } else {
+          btn.classList.remove('border-neonred', 'bg-zinc-900');
+          btn.classList.add('border-zinc-800');
+        }
+      });
+
+      if (isPlaying) {
+        restartSequencer();
+      } else {
+        playTrack();
+      }
+    }
+
+    function playSynthStep() {
+      if (!isPlaying || isMuted) return;
+      initAudio();
+
+      const track = tracks[currentTrackIdx];
+      const freq = track.notes[stepIndex % track.notes.length];
+
+      if (freq > 0) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        const filter = audioCtx.createBiquadFilter();
+
+        osc.type = track.wave;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(track.wave === 'sawtooth' ? 1400 : 2200, audioCtx.currentTime);
+
+        gain.gain.setValueAtTime(0.09, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.16);
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.16);
+      }
+
+      // Animate Visualizer Bars
+      const bars = vizContainer.children;
+      for (let i = 0; i < bars.length; i++) {
+        if (freq > 0) {
+          const dist = Math.abs(i - (stepIndex % 16));
+          const height = Math.max(15, 95 - dist * 12 + (Math.random() * 25));
+          bars[i].style.height = `${Math.min(100, height)}%`;
+          bars[i].style.backgroundColor = i % 4 === 0 ? '#ffffff' : '#ff1e42';
+        } else {
+          bars[i].style.height = '14%';
+        }
+      }
+
+      stepIndex++;
+    }
+
+    function playTrack() {
+      if (isMuted) {
+        isMuted = false;
+        document.getElementById('soundIcon').textContent = '🔊';
+        const label = document.getElementById('soundLabel');
+        if (label) label.textContent = 'SFX: ON';
+      }
+      initAudio();
+      isPlaying = true;
+      stepIndex = 0;
+      document.getElementById('nowPlayingTitle').textContent = tracks[currentTrackIdx].name;
+      document.getElementById('playPauseBtn').textContent = '❚❚ PAUSE';
+      const status = document.getElementById('deckStatus');
+      status.textContent = 'PLAYING';
+      status.classList.add('text-emerald-400', 'border-emerald-500');
+      status.classList.remove('text-zinc-400', 'border-zinc-700');
+
+      // Ensure first track is highlighted if user clicked Play directly
+      document.getElementById(`track-${currentTrackIdx}`).classList.add('border-neonred', 'bg-zinc-900');
+
+      restartSequencer();
+    }
+
+    function restartSequencer() {
+      clearInterval(seqInterval);
+      const stepMs = (60 / currentBpm / 2) * 1000; // 8th notes
+      playSynthStep();
+      seqInterval = setInterval(playSynthStep, stepMs);
+    }
+
+    function togglePlayTrack() {
+      if (isPlaying) {
+        isPlaying = false;
+        clearInterval(seqInterval);
+        document.getElementById('playPauseBtn').textContent = '▶ PLAY TAPE';
+        const status = document.getElementById('deckStatus');
+        status.textContent = 'PAUSED';
+        status.classList.remove('text-emerald-400', 'border-emerald-500');
+      } else {
+        playTrack();
+      }
+    }
+
+    function stopTrack() {
+      isPlaying = false;
+      clearInterval(seqInterval);
+      stepIndex = 0;
+      document.getElementById('playPauseBtn').textContent = '▶ PLAY TAPE';
+      const status = document.getElementById('deckStatus');
+      status.textContent = 'STANDBY';
+      status.classList.remove('text-emerald-400', 'border-emerald-500');
+      Array.from(vizContainer.children).forEach(b => b.style.height = '12%');
+    }
+
+    function updateTempo(val) {
+      currentBpm = parseInt(val, 10);
+      document.getElementById('bpmDisplay').textContent = `${currentBpm} BPM`;
+      if (isPlaying) {
+        restartSequencer();
+      }
+    }
+
+    // ==========================================
+    // 5. TARGET PRACTICE MINI-GAME
+    // ==========================================
+    const rangeCanvas = document.getElementById('rangeCanvas');
+    const rCtx = rangeCanvas.getContext('2d');
+    const gameContainer = document.getElementById('gameContainer');
+
+    let gameActive = false;
+    let score = 0;
+    let highScore = 0;
+    let combo = 1;
+    let timeLeft = 30;
+    let targets = [];
+    let rangeParticles = [];
+    let floatingTexts = [];
+    let spawnTimer = null;
+    let countdownTimer = null;
+
+    function resizeRangeCanvas() {
+      const rect = gameContainer.getBoundingClientRect();
+      rangeCanvas.width = rect.width;
+      rangeCanvas.height = rect.height;
+    }
+    window.addEventListener('resize', resizeRangeCanvas);
+    resizeRangeCanvas();
+
+    function startTargetGame() {
+      playClick(800);
+      resizeRangeCanvas();
+      gameActive = true;
+      score = 0;
+      combo = 1;
+      timeLeft = 30;
+      targets = [];
+      rangeParticles = [];
+      floatingTexts = [];
+
+      updateGameHUD();
+      document.getElementById('gameOverlay').classList.add('hidden');
+
+      clearInterval(spawnTimer);
+      clearInterval(countdownTimer);
+
+      spawnTarget();
+      spawnTimer = setInterval(spawnTarget, 750);
+
+      countdownTimer = setInterval(() => {
+        timeLeft--;
+        updateGameHUD();
+        if (timeLeft <= 0) {
+          endTargetGame();
+        }
+      }, 1000);
+    }
+
+    function endTargetGame() {
+      gameActive = false;
+      clearInterval(spawnTimer);
+      clearInterval(countdownTimer);
+      playExplosionSound();
+
+      if (score > highScore) {
+        highScore = score;
+        document.getElementById('heroHighScore').textContent = `${highScore} PTS`;
+      }
+
+      const overlay = document.getElementById('gameOverlay');
+      document.getElementById('overlayTitle').textContent = `MISSION COMPLETE // ${score} PTS`;
+      document.getElementById('overlayDesc').textContent =
+        score >= 1500
+          ? 'DOUBLE-O MARKSMAN RANK ACHIEVED! Incredible reflexes, Agent.'
+          : 'Solid shooting on the range. Ready for another round?';
+      overlay.classList.remove('hidden');
+    }
+
+    function updateGameHUD() {
+      document.getElementById('gameScore').textContent = score;
+      document.getElementById('gameCombo').textContent = `x${combo}`;
+      document.getElementById('gameTime').textContent = timeLeft;
+    }
+
+    function spawnTarget() {
+      if (!gameActive) return;
+      const padding = 36;
+      const maxX = Math.max(padding + 10, rangeCanvas.width - padding);
+      const maxY = Math.max(padding + 10, rangeCanvas.height - padding);
+      const isGold = Math.random() < 0.22; // 22% chance for high-value gold target
+
+      targets.push({
+        x: padding + Math.random() * (maxX - padding),
+        y: padding + Math.random() * (maxY - padding),
+        radius: isGold ? 18 : 24,
+        isGold: isGold,
+        life: 1.0,
+        decay: isGold ? 0.014 : 0.01
+      });
+    }
+
+    function handleRangeShot(clientX, clientY) {
+      if (!gameActive) return;
+      const rect = rangeCanvas.getBoundingClientRect();
+      const clickX = clientX - rect.left;
+      const clickY = clientY - rect.top;
+
+      let hit = false;
+      for (let i = targets.length - 1; i >= 0; i--) {
+        const t = targets[i];
+        const dist = Math.hypot(clickX - t.x, clickY - t.y);
+        if (dist <= t.radius + 8) {
+          hit = true;
+          playExplosionSound();
+
+          const basePts = t.isGold ? 250 : 100;
+          const earned = basePts * combo;
+          score += earned;
+          combo = Math.min(8, combo + 1);
+
+          // Spawn pixel explosion particles inside range
+          const pColors = t.isGold ? ['#f59e0b', '#ffffff', '#fef08a'] : ['#ff1e42', '#ffffff', '#dc2626'];
+          for (let j = 0; j < 18; j++) {
+            const ang = Math.random() * Math.PI * 2;
+            const spd = 2 + Math.random() * 5;
+            rangeParticles.push({
+              x: t.x,
+              y: t.y,
+              vx: Math.cos(ang) * spd,
+              vy: Math.sin(ang) * spd,
+              size: 4 + Math.random() * 4,
+              color: pColors[Math.floor(Math.random() * pColors.length)],
+              life: 1.0
+            });
+          }
+
+          floatingTexts.push({
+            x: t.x,
+            y: t.y,
+            text: `+${earned}`,
+            color: t.isGold ? '#fbbf24' : '#ffffff',
+            life: 1.0
+          });
+
+          targets.splice(i, 1);
+          break;
+        }
+      }
+
+      if (!hit) {
+        playMissThud();
+        combo = 1; // Reset combo on miss
+        const penalty = 50;
+        score = Math.max(0, score - penalty);
+        floatingTexts.push({
+          x: clickX,
+          y: clickY,
+          text: `-${penalty} MISS`,
+          color: '#ff1e42',
+          life: 0.9
+        });
+      }
+
+      updateGameHUD();
+    }
+
+    rangeCanvas.addEventListener('mousedown', (e) => handleRangeShot(e.clientX, e.clientY));
+    rangeCanvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      handleRangeShot(touch.clientX, touch.clientY);
+    }, { passive: false });
+
+    function renderTargetRange() {
+      rCtx.clearRect(0, 0, rangeCanvas.width, rangeCanvas.height);
+
+      // Draw subtle range grid lines
+      rCtx.strokeStyle = 'rgba(255, 30, 66, 0.08)';
+      rCtx.lineWidth = 1;
+      for (let x = 0; x < rangeCanvas.width; x += 32) {
+        rCtx.beginPath();
+        rCtx.moveTo(x, 0);
+        rCtx.lineTo(x, rangeCanvas.height);
+        rCtx.stroke();
+      }
+      for (let y = 0; y < rangeCanvas.height; y += 32) {
+        rCtx.beginPath();
+        rCtx.moveTo(0, y);
+        rCtx.lineTo(rangeCanvas.width, y);
+        rCtx.stroke();
+      }
+
+      // Update & Draw Targets
+      for (let i = targets.length - 1; i >= 0; i--) {
+        const t = targets[i];
+        t.life -= t.decay;
+        if (t.life <= 0) {
+          targets.splice(i, 1);
+          if (gameActive) {
+            combo = 1;
+            updateGameHUD();
+          }
+          continue;
+        }
+
+        const primaryColor = t.isGold ? '#f59e0b' : '#ff1e42';
+        rCtx.save();
+        rCtx.globalAlpha = Math.min(1, t.life * 1.5);
+
+        // Outer ring
+        rCtx.beginPath();
+        rCtx.arc(t.x, t.y, t.radius, 0, Math.PI * 2);
+        rCtx.fillStyle = '#121216';
+        rCtx.fill();
+        rCtx.lineWidth = 3;
+        rCtx.strokeStyle = primaryColor;
+        rCtx.stroke();
+
+        // Middle white ring
+        rCtx.beginPath();
+        rCtx.arc(t.x, t.y, t.radius * 0.6, 0, Math.PI * 2);
+        rCtx.strokeStyle = '#ffffff';
+        rCtx.lineWidth = 2;
+        rCtx.stroke();
+
+        // Bullseye center
+        rCtx.beginPath();
+        rCtx.arc(t.x, t.y, t.radius * 0.25, 0, Math.PI * 2);
+        rCtx.fillStyle = primaryColor;
+        rCtx.fill();
+
+        // Crosshair ticks
+        rCtx.beginPath();
+        rCtx.moveTo(t.x - t.radius - 5, t.y);
+        rCtx.lineTo(t.x + t.radius + 5, t.y);
+        rCtx.moveTo(t.x, t.y - t.radius - 5);
+        rCtx.lineTo(t.x, t.y + t.radius + 5);
+        rCtx.strokeStyle = 'rgba(255,255,255,0.4)';
+        rCtx.lineWidth = 1;
+        rCtx.stroke();
+
+        rCtx.restore();
+      }
+
+      // Update & Draw Pixel Explosion Particles
+      for (let i = rangeParticles.length - 1; i >= 0; i--) {
+        const p = rangeParticles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= 0.04;
+        if (p.life <= 0) {
+          rangeParticles.splice(i, 1);
+        } else {
+          rCtx.globalAlpha = p.life;
+          rCtx.fillStyle = p.color;
+          rCtx.fillRect(Math.round(p.x), Math.round(p.y), p.size, p.size);
+        }
+      }
+
+      // Update & Draw Floating Score Popups
+      rCtx.font = 'bold 11px "Press Start 2P", monospace';
+      rCtx.textAlign = 'center';
+      for (let i = floatingTexts.length - 1; i >= 0; i--) {
+        const ft = floatingTexts[i];
+        ft.y -= 1.2;
+        ft.life -= 0.03;
+        if (ft.life <= 0) {
+          floatingTexts.splice(i, 1);
+        } else {
+          rCtx.globalAlpha = ft.life;
+          rCtx.fillStyle = ft.color;
+          rCtx.fillText(ft.text, ft.x, ft.y);
+        }
+      }
+
+      rCtx.globalAlpha = 1;
+      requestAnimationFrame(renderTargetRange);
+    }
+
+    // Start animation loops on window load
+    window.onload = function () {
+      resizeExpCanvas();
+      resizeRangeCanvas();
+      animateScreenParticles();
+      renderTargetRange();
+    };
+  </script>
+</body>
+</html>
